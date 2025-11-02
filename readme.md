@@ -1,87 +1,75 @@
-# 🚀 Amazon Review Sentiment Classification using Naive Bayes
+# 🚀 Amazon Review Sentiment Classification (Bernoulli Naive Bayes)
 
-This project focuses on classifying Amazon product reviews into positive or negative sentiment using a machine learning pipeline based on the **Bernoulli Naive Bayes** algorithm. The implementation uses best practices like data subsetting, scikit-learn pipelines, and cross-validation for hyperparameter tuning.
+This project implements a machine learning pipeline to classify Amazon product reviews into positive (Label 2) or negative (Label 1) sentiment. The core achievement is using an **expanded Grid Search** to simultaneously tune the **vectorization method** and the **Bernoulli Naive Bayes** classifier.
 
-***
+---
 
-## ⚙️ Project Setup and Dependencies
+## ⚙️ Project Configuration and Data
 
-The project is built using Python and standard data science libraries.
+### Data Details
 
-### Requirements
-
-To run the notebook, you need the following libraries:
-
-* `pandas`
-* `numpy`
-* `scikit-learn`
-* `matplotlib` (for potential visualizations)
-
-### Data
-
-The project utilizes a large Amazon review dataset, stored in the `data/` directory:
-
-* `data/train.csv`
-* `data/test.csv`
-
-The raw files follow a structured format: `[Label, Title, Review Content]`.
-
-***
-
-## 💾 Data Processing and Cleaning
-
-### Data Subset and Cleanup
-
-Due to the size of the full training set, the initial phase focuses on a manageable subset:
-
-1. **Column Mapping:** The raw, headerless CSV files are loaded and columns are renamed:
-    * Column `0` $\rightarrow$ `label` (Sentiment: **1** or **2**)
-    * Column `1` $\rightarrow$ `title`
-    * Column `2` $\rightarrow$ `content` (Review Text)
-2. **Feature Reduction:** The **`title`** column was dropped from both datasets.
-3. **Subsetting:** The primary `train` DataFrame was limited to the **first 50,000 rows** for efficient training and cross-validation.
-4. **Data Split:** The 50,000 rows were split into training and validation sets:
-    * **$X_{train}, y_{train}$:** 80% (40,000 reviews) for model training.
-    * **$X_{test}, y_{test}$:** 20% (10,000 reviews) for validation. *(Note: This split is from the 50k subset, not the external `data/test.csv` file)*.
+* **Training Data Subset:** The main training set was limited to the **first 100,000 rows** (`CHUNK_SIZE = 100000`).
+* **Target Balance:** The 100k subset shows near-perfect balance, which is ideal for classification:
+  * Label **2** (Positive): 51,267 reviews
+  * Label **1** (Negative): 48,733 reviews
+* **Evaluation Data:** The final model was tested on the **full, external test dataset** (`data/test.csv`), which contains **400,000** reviews.
 
 ### Feature Engineering Pipeline
 
-The text data is prepared for the Naive Bayes model using a `Pipeline` combining vectorization and the classifier:
+The final, best model was found using a pipeline structure that compared two distinct vectorization methods (Count and TF-IDF), optimized for the Bernoulli Naive Bayes classifier.
 
-| Pipeline Step | Class | Role | Key Parameters |
+| Pipeline Step | Class | Role | Key Configuration |
 | :--- | :--- | :--- | :--- |
-| **Vectorization** | `CountVectorizer` | Converts text to numerical features (Bag-of-Words). | `max_features=10000`, `stop_words='english'`, **`binary=True`** |
-| **Classifier** | `BernoulliNB` | The Naive Bayes model. | `alpha` (tuned below) |
+| **Vectorizer** | `TfidfVectorizer` (Best) | Converts text to numerical features. | **`binary=True`** (Required for BernoulliNB) |
+| **Classifier** | `BernoulliNB` | Binary Naive Bayes model. | $\mathbf{\alpha}$ (Smoothing parameter) |
 
-The **`binary=True`** parameter in `CountVectorizer` is essential here, as it forces the features to be binary (1 if a word is present, 0 if absent), matching the assumption of the **Bernoulli Naive Bayes** classifier.
+---
 
-***
+## 🔬 Optimized Model Performance
 
-## 🔬 Model Training and Results
+### 1. Cross-Validation & Hyperparameter Tuning
 
-### Hyperparameter Tuning (`GridSearchCV`)
+The **Expanded Grid Search** was performed on the 100,000-row training subset (5-Fold Cross-Validation) to find the best combination of vectorizer type, feature size, N-gram range, and $\alpha$.
 
-The model's smoothing parameter, **$\alpha$** (alpha), was optimized using 5-Fold Grid Search Cross-Validation (`GridSearchCV`) on the training data.
+#### **🏆 Best Model Configuration (from Grid Search)**
 
-* **Model Tested:** `pipe_nb` (CountVectorizer $\rightarrow$ BernoulliNB)
-* **Parameter Grid:** `{"bernoullinb__alpha": [0.1, 0.5, 1.0, 2.0, 5.0]}`
-* **Scoring Metric:** `accuracy`
-
-#### Cross-Validation Performance
-
-The optimal $\alpha$ was found to be the default value, demonstrating good stability.
-
-| Metric | Value |
+| Parameter | Value |
 | :--- | :--- |
-| **Best $\alpha$ parameter found** | **1.0** |
-| **Best Cross-Validation Accuracy** | **0.8257** |
+| **Vectorization Method** | `TfidfVectorizer` |
+| **Feature Limit (`max_features`)** | **20,000** |
+| **N-gram Range** | **(1, 2)** (Unigrams and Bigrams) |
+| **Smoothing ($\alpha$)** | **0.1** |
+| **Mean CV Accuracy** | **0.8399** |
+| **Mean Train Accuracy** | **0.8634** |
 
-***
+***Interpretation:*** The best model uses **TF-IDF** with both single words and two-word phrases up to 20,000 features, slightly outperforming the pure CountVectorizer approach. The **Train Score (0.8634)** is very close to the **CV Score (0.8399)**, indicating the model generalizes well with minimal overfitting.
 
-## ⏭️ Future Work
+---
 
-To further enhance the project, the following steps are recommended:
+### 2. Final Evaluation on External Test Set
 
-1. **Final Test Evaluation:** Evaluate the optimized model on the completely unseen external test dataset (`data/test.csv`) to obtain an unbiased final performance score and classification report.
-2. **Algorithm Comparison:** Implement and compare the performance against **Multinomial Naive Bayes** (which uses word counts/TF-IDF) to determine the best approach for this dataset.
-3. **Tuning Optimization:** Utilize **RandomizedSearchCV** to explore a broader range of hyperparameters simultaneously for both the `CountVectorizer` (e.g., `ngram_range`) and the Naive Bayes $\alpha$ to achieve potentially better results faster.
+The best model from the Grid Search was applied to the entire, unseen $\mathbf{400,000}$ reviews in `data/test.csv`.
+
+#### **✅ Final Test Results**
+
+| Metric | Score |
+| :--- | :--- |
+| **Total Test Reviews** | 400,000 |
+| **Final Test Accuracy** | **0.8387** |
+| **F1-Score (Macro Avg)** | **0.84** |
+
+#### **Classification Report Summary**
+
+| Label | Precision | Recall | F1-Score | Support |
+| :--- | :--- | :--- | :--- | :--- |
+| **1 (Negative)** | 0.85 | 0.83 | 0.84 | 200,000 |
+| **2 (Positive)** | 0.83 | 0.85 | 0.84 | 200,000 |
+
+***Conclusion:*** The final model achieves a strong and balanced accuracy of **~83.9%** on the massive test set, demonstrating the effectiveness of the tuned Bernoulli Naive Bayes pipeline for this sentiment classification task.
+
+---
+
+## ⏭️ Next Steps
+
+1. **Multinomial Naive Bayes Comparison:** Since TF-IDF with `binary=True` was the winner here, the next experiment should be running the same Grid Search with **`MultinomialNB`** and switching the vectorizers back to their standard non-binary setting (allowing word counts and TF-IDF scores). This is the conventional approach for text and could potentially yield a small performance gain.
+2. **Model Persistence:** Save the `search.best_estimator_` object using `joblib` or `pickle` so the model can be deployed without retraining.

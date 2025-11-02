@@ -1,5 +1,3 @@
-Here is the README file, based on the Jupyter Notebook code you provided, detailing your Amazon Review Sentiment Classification project.
-
 # 🚀 Amazon Review Sentiment Classification using Naive Bayes
 
 This project focuses on classifying Amazon product reviews into positive or negative sentiment using a machine learning pipeline based on the **Bernoulli Naive Bayes** algorithm. The implementation uses best practices like data subsetting, scikit-learn pipelines, and cross-validation for hyperparameter tuning.
